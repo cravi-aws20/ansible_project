@@ -1,0 +1,69 @@
+---
+- name: Install package dependencies.
+  package: name={{ item }} state=present
+  with_items:
+    - python
+    - unzip
+
+- name: Download the awscli bundle.
+  get_url: url=https://s3.amazonaws.com/aws-cli/awscli-bundle.zip dest=/tmp/awscli-bundle.zip
+  register: aws_cli_download_bundle
+
+- name: Unarchive the installer.
+  unarchive: src=/tmp/awscli-bundle.zip dest=/tmp copy=no creates=/tmp/awscli-bundle
+  when: aws_cli_download_bundle.changed
+  register: aws_cli_unarchive_installer
+
+- name: Install awscli package.
+  shell: python /tmp/awscli-bundle/install -i /usr/local/aws -b /usr/bin/aws
+  args:
+    creates: /usr/bin/aws
+  when: aws_cli_unarchive_installer.changed
+
+- name: Download the terraform bundle.
+  get_url: url=https://releases.hashicorp.com/terraform/1.0.1/terraform_1.0.1_linux_amd64.zip dest=/tmp/terraform_1.0.1_linux_amd64.zip
+  register: terraform_download_bundle
+
+- name: Unarchive the terraform installer.
+  unarchive: src=/tmp/terraform_1.0.1_linux_amd64.zip dest=/tmp copy=no creates=/tmp/terraform-bundle
+  when: terraform_download_bundle.changed
+  register: terraform_unarchive_installer
+
+- name: copy the terraform file into home directory
+  copy: src=/tmp/terraform dest=/usr/bin/terraform remote_src=yes mode=0755
+
+- name : to change the terraform working directory & run terraform apply
+  shell:  |
+    cd /home/terraform
+    terraform init
+    terraform plan -out=plan.tfplan
+  changed_when : false
+  register : create_plan
+
+- name : create resources
+  shell: |
+    cd /home/terraform
+    terraform apply plan.tfplan 
+  changed_when : false
+  register : create
+
+- name: Display plan file output
+  debug:
+          msg : "{{ create_plan.stdout }}"
+  changed_when : false
+
+- name :  display output of terrform apply  
+  debug:
+          msg : "{{ create.stdout }}"
+  changed_when : false
+
+- name: Configure AWS.
+  shell: aws configure set {{ item.key }} {{ item.value }} --profile {{ aws_profile }}
+  no_log: True
+  with_dict:
+    aws_access_key_id: "{{ aws_access_key }}"
+    aws_secret_access_key: "{{ aws_secret_key }}"
+    region: "{{ aws_region }}"
+    format: "{{ aws_format }}"
+  become_user: "{{ aws_system_user }}"
+  changed_when: false
