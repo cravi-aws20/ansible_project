@@ -1,7 +1,7 @@
 ---
 aws_system_user: ravitest
 aws_profile: default
-aws_access_key: "AKIASODMWINAIH2L6REB"
-aws_secret_key: "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"
+aws_access_key: "XXXXXXXXX"
+aws_secret_key: "XXXXXXXX"
 aws_region: us-east-1
 aws_format: table
