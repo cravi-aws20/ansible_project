@@ -1,5 +1,5 @@
 ---
-- hosts: all
+- hosts: 10.0.1.244
   vars_files:
     - vars/main.yml
   tasks:
